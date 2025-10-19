@@ -1,0 +1,104 @@
+version: '3.8' # Bạn có thể xóa dòng này nếu muốn, nó không còn cần thiết
+
+services:
+  auth:
+    build: ./auth
+    container_name: auth_service
+    ports:
+      - "3000:3000"
+    environment:
+      MONGODB_AUTH_URI: mongodb://mongo_auth:27017/authdb
+      JWT_SECRET: ${JWT_SECRET:-your_default_jwt_secret}
+    depends_on:
+      - mongo_auth
+    networks: # <-- THÊM VÀO
+      - eproject_network # <-- THÊM VÀO
+
+  product:
+    build: ./product
+    container_name: product_service
+    ports:
+      - "3001:3001"
+    environment:
+      MONGODB_PRODUCT_URI: mongodb://mongo_product:27017/productdb
+      JWT_SECRET: ${JWT_SECRET:-your_default_jwt_secret}
+      RABBITMQ_URI: amqp://rabbitmq:5672
+    depends_on:
+      - mongo_product
+      - rabbitmq
+    networks: # <-- THÊM VÀO
+      - eproject_network # <-- THÊM VÀO
+
+  order:
+    build: ./order
+    container_name: order_service
+    ports:
+      - "3002:3002"
+    environment:
+      MONGODB_ORDER_URI: mongodb://mongo_order:27017/orderdb
+      JWT_SECRET: ${JWT_SECRET:-your_default_jwt_secret}
+      RABBITMQ_URI: amqp://rabbitmq:5672
+    depends_on:
+      - mongo_order
+      - rabbitmq
+    networks: # <-- THÊM VÀO
+      - eproject_network # <-- THÊM VÀO
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api_gateway_service
+    ports:
+      - "3003:3003"
+    depends_on:
+      - auth
+      - product
+      - order
+    networks: # <-- THÊM VÀO
+      - eproject_network # <-- THÊM VÀO
+
+  mongo_auth:
+    image: mongo:latest
+    container_name: mongo_auth_db
+    volumes:
+      - mongo_auth_data:/data/db
+    networks: # <-- THÊM VÀO
+      - eproject_network # <-- THÊM VÀO
+
+  mongo_product:
+    image: mongo:latest
+    container_name: mongo_product_db
+    volumes:
+      - mongo_product_data:/data/db
+    networks: # <-- THÊM VÀO
+      - eproject_network # <-- THÊM VÀO
+
+  mongo_order:
+    image: mongo:latest
+    container_name: mongo_order_db
+    volumes:
+      - mongo_order_data:/data/db
+    networks: # <-- THÊM VÀO
+      - eproject_network # <-- THÊM VÀO
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq_service
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks: # <-- THÊM VÀO
+      - eproject_network # <-- THÊM VÀO
+
+volumes:
+  mongo_auth_data:
+  mongo_product_data:
+  mongo_order_data:
+  rabbitmq_data:
+
+# --- THÊM PHẦN ĐỊNH NGHĨA NETWORK ---
+networks:
+  eproject_network:
+    driver: bridge # Sử dụng driver mặc định
+# ------------------------------------
